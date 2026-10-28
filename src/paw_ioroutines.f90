@@ -393,7 +393,6 @@ CALL TRACE$PASS('DONE')
 !     ==  READ BLOCK !RDYN                                            ==
 !     ==================================================================
       CALL READIN_RDYN(LL_CNTL)
-      CALL AUTO$SETR8('TOLERANCE',1.D-5)
 !    
 !     ==================================================================
 !     ==  READ BLOCK !MERMIN                                          ==
@@ -1007,6 +1006,15 @@ CALL TRACE$PASS('DONE')
       IF(TCHK) THEN
         CALL LINKEDLIST$GET(LL_CNTL,'ETOL',1,SVAR)
         CALL AUTO$SETR8('TOLERANCE',SVAR)
+      END IF
+!
+!     ==========================================================================
+!     ==  READ BREAKRETARD  (1,2,...,NHISTX)                                  ==
+!     ==========================================================================
+      CALL LINKEDLIST$EXISTD(LL_CNTL,'BREAKRETARD',0,TCHK)
+      IF(TCHK) THEN
+        CALL LINKEDLIST$GET(LL_CNTL,'BREAKRETARD',1,ISVAR)
+        CALL AUTO$SETI4('RETARD',ISVAR)
       END IF
 !
 !     ==========================================================================
