@@ -88,7 +88,9 @@ END MODULE REFCELL_MODULE
         ELSE
           MODE='LINEARINTERPOLATION'
         ENDIF
-        IF(MODE.EQ.'DIAGONALISATION')THEN
+        IF(MODE.EQ.'DIAGONALISATION'.OR. &
+       &   MODE.EQ.'DIAGONALIZATION'.OR. &
+       &   MODE.EQ.'DIAG')THEN
           CALL BANDS_BANDSTRUCTURE_DIAG(LL_CNTL,NFIL,NFILO)
         ELSE IF(MODE.EQ.'LINEARINTERPOLATION')THEN
           IF(THISTASK.EQ.1)THEN
@@ -96,6 +98,9 @@ END MODULE REFCELL_MODULE
           ENDIF
         ELSE
           CALL ERROR$MSG('BANDS: MODE UNKNOWN')
+          CALL ERROR$MSG('ALLOWED VALUES (CASE INSENSITIVE) ARE:')
+          CALL ERROR$MSG('DIAG, DIAGONALIZATION, DIAGONALISATION OR')
+          CALL ERROR$MSG('LINEARINTERPOLATION')
           CALL ERROR$CHVAL('MODE',MODE)
           CALL ERROR$STOP('PAW_BANDS')
         ENDIF
@@ -122,6 +127,10 @@ END MODULE REFCELL_MODULE
 !     ==  CLOSING                                                             ==
 !     ==========================================================================
       IF(THISTASK.EQ.1)THEN
+        CALL LINKEDLIST$SELECT(LL_CNTL,'~')
+        CALL LINKEDLIST$SELECT(LL_CNTL,'BCNTL')
+        CALL LINKEDLIST$REPORT_UNUSED(LL_CNTL,NFILO)
+
         CALL FILEHANDLER$REPORT(NFILO,'USED')
         WRITE(NFILO,FMT='(72("="))')
         WRITE(NFILO,FMT='(72("="),T20,"  PAW_BANDS TOOL FINISHED  ")')
@@ -217,7 +226,6 @@ END MODULE REFCELL_MODULE
       END IF
       RETURN
       END     
-
 !
 !     ...1.........2.........3.........4.........5.........6.........7.........8
       SUBROUTINE SPACEGROUP$SYMMETRYPOINTS(BRAVAIS,NPX,NP,NAME,G)
@@ -328,8 +336,6 @@ END MODULE REFCELL_MODULE
 !     **************************************************************************
       USE STRINGS_MODULE
       IMPLICIT NONE
-      LOGICAL(4),PARAMETER :: T=.TRUE.
-      LOGICAL(4),PARAMETER :: F=.FALSE.
       CHARACTER(32)        :: ID
 !     **************************************************************************
                                    CALL TRACE$PUSH('STANDARDFILES_BANDS')
@@ -340,15 +346,15 @@ END MODULE REFCELL_MODULE
 !
 !     ==  ERROR FILE ===================================================
       ID=+'ERR'
-      CALL FILEHANDLER$SETFILE(ID,T,-'.BERR')
+      CALL FILEHANDLER$SETFILE(ID,.TRUE.,-'.BERR')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'STATUS','REPLACE')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'POSITION','APPEND')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'ACTION','WRITE')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'FORM','FORMATTED')
 !
-!     ==  PROTOCOLL FILE================================================
+!     ==  PROTOCOL FILE ================================================
       ID=+'PROT'
-      CALL FILEHANDLER$SETFILE(ID,T,-'.BPROT')
+      CALL FILEHANDLER$SETFILE(ID,.TRUE.,-'.BPROT')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'STATUS','UNKNOWN')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'POSITION','APPEND')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'ACTION','WRITE')
@@ -356,7 +362,7 @@ END MODULE REFCELL_MODULE
 !
 !     ==  CONTROL FILE  == =============================================
       ID=+'BCNTL'
-      CALL FILEHANDLER$SETFILE(ID,T,-'.BCNTL')
+      CALL FILEHANDLER$SETFILE(ID,.TRUE.,-'.BCNTL')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'STATUS','OLD')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'POSITION','REWIND')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'ACTION','READ')
@@ -364,7 +370,7 @@ END MODULE REFCELL_MODULE
 !
 !     ==  STRUCTURE FILE   =============================================
       ID=+'PDOS'
-      CALL FILEHANDLER$SETFILE(ID,T,-'.PDOS')
+      CALL FILEHANDLER$SETFILE(ID,.TRUE.,-'.PDOS')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'STATUS','OLD')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'POSITION','REWIND')
       CALL FILEHANDLER$SETSPECIFICATION(ID,'ACTION','READ')
@@ -779,7 +785,7 @@ PRINT*,'N1B ',N1B,N2B,N3B
        PRINT*,'NB ',NB
        PRINT*,'X1X2 ',X1,X2
        WRITE(FMTSTRING,*)NB+1
-       FMTSTRING='('//TRIM(ADJUSTL(FMTSTRING))//'F9.5)'
+       FMTSTRING='('//TRIM(ADJUSTL(FMTSTRING))//'F10.5)'
        CALL FILEHANDLER$UNIT('BANDS',NFIL)
        DO IQ=1,NQ
          IF(NQ.EQ.1) THEN
@@ -1171,7 +1177,7 @@ PRINT*,'N1B ',N1B,N2B,N3B
           DO IDIM1=1,NDIM
             I1=I*(NDIM)+(IDIM1-1)
             PSI1(:,:,:)=0.0D0
-            PSI1(I,IDIM1,1)=CMPLX(1.0D0,0.0D0)
+            PSI1(I,IDIM1,1)=CMPLX(1.D0,0.D0,KIND=8)
             HPSI1(:,:,:)=0.0D0
             CALL WAVES_VPSI(GSET,NGL,NDIM,1,NRG,PSI1(:,:,:) &
       &                                        ,VOFR(:,ISPIN),HPSI1(:,:,:))
@@ -1334,7 +1340,7 @@ PRINT*,'N1B ',N1B,N2B,N3B
         IBPRO=1+SUM(LNX(1:ISP-1))
         DO I=1,NG2
           SVAR=SUM(GVECPK(:,I)*R(:,IAT))
-          EIGR(I)=CMPLX(COS(SVAR),-SIN(SVAR))
+          EIGR(I)=CMPLX(COS(SVAR),-SIN(SVAR),KIND=8)
         ENDDO
 
 !PRINT*,"LOX",IAT,ISP,LNX_,LMNX_,LOX_(1:LNX_),IBPRO,R(:,IAT)
@@ -1502,11 +1508,12 @@ PRINT*,'N1B ',N1B,N2B,N3B
           IBPRO=1+SUM(LNX(1:ISP-1))
           DO I=1,NG2
             SVAR=SUM(GVECPK(:,I)*R(:,IAT))
-            EIGR(I)=CMPLX(COS(SVAR),SIN(SVAR))
+            EIGR(I)=CMPLX(COS(SVAR),SIN(SVAR),KIND=8)
           ENDDO
 
           CALL WAVES_EXPANDPRO(LNX_,LOX_,LMNX_,NG2,GVECPK(1:3,1:NG2) &
-       & ,BAREPRO(1:NG2,IBPRO:IBPRO+LNX_-1),LMX,YLM,EIGR(1:NG2),PRO(IAT,1:NG2,1:LMNX_))
+       &                      ,BAREPRO(1:NG2,IBPRO:IBPRO+LNX_-1),LMX,YLM &
+       &                      ,EIGR(1:NG2),PRO(IAT,1:NG2,1:LMNX_))
         ENDDO
         PRO(:,:,:)=SQRT(GWEIGHT)*PRO(:,:,:)
         DO IAT=1,NAT
@@ -1681,7 +1688,7 @@ END MODULE
         IF(TCHK)THEN
           CALL LINKEDLIST$GET(LL_CNTL,'NAME',1,BANDDATAFILE)
           ID=+'BANDDATAIN'
-          CALL FILEHANDLER$SETFILE(ID,.FALSE.,-BANDDATAFILE)
+          CALL FILEHANDLER$SETFILE(ID,.FALSE.,BANDDATAFILE)
           CALL FILEHANDLER$SETSPECIFICATION(ID,'STATUS','OLD')
           CALL FILEHANDLER$SETSPECIFICATION(ID,'POSITION','REWIND')
           CALL FILEHANDLER$SETSPECIFICATION(ID,'ACTION','READ')
@@ -1803,7 +1810,6 @@ END MODULE
 !       ========================================================================
 !       ==  READ K-VECTORS                                                    ==
 !       ========================================================================
-!
 !       == SCALE FACTOR =======================================================
         CALL LINKEDLIST$EXISTD(LL_CNTL,'LUNIT',0,TCHK1)
         CALL LINKEDLIST$EXISTD(LL_CNTL,'LUNIT[AA]',0,TCHK2)
@@ -2243,7 +2249,7 @@ PRINT*,'+++++++++++++++++ SPIN=',ISPIN,'++++++++++++++++++'
         IF(TCHK)THEN
           CALL LINKEDLIST$GET(LL_CNTL,'NAME',1,BANDDATAFILE)
           ID=+'BANDDATAIN'
-          CALL FILEHANDLER$SETFILE(ID,.FALSE.,-BANDDATAFILE)
+          CALL FILEHANDLER$SETFILE(ID,.FALSE.,BANDDATAFILE)
           CALL FILEHANDLER$SETSPECIFICATION(ID,'STATUS','OLD')
           CALL FILEHANDLER$SETSPECIFICATION(ID,'POSITION','REWIND')
           CALL FILEHANDLER$SETSPECIFICATION(ID,'ACTION','READ')
@@ -2470,7 +2476,7 @@ PRINT*,'+++++++++++++++++ SPIN=',ISPIN,'++++++++++++++++++'
       EB(:,:)=0.0D0 
       IF(TPROJ)THEN
         ALLOCATE(PROJK(NAT,NB*NSPIN,LMNXX,NKP))
-        PROJK(:,:,:,:)=CMPLX(0.0D0,0.0D0)
+        PROJK(:,:,:,:)=CMPLX(0.D0,0.D0,KIND=8)
       ENDIF
 
 !     ==========================================================================
@@ -2767,7 +2773,7 @@ PRINT*,'+++++++++++++++++ SPIN=',ISPIN,'++++++++++++++++++'
         FPM(5)=1 !PROVIDE INITIAL GUESS SUBSPACE
       ELSE
         FPM(5)=0 !PROVIDE INITIAL GUESS SUBSPACE
-        U=CMPLX(0.0D0,0.0D0)
+        U=CMPLX(0.D0,0.D0,KIND=8)
       ENDIF
 !     __CHOOSE CONVERGENCE CRITERIA:____________________________________________
 !     _________0 RELATIVE ERROR ON TRACE (EPSOUT<EPS)

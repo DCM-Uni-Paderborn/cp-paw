@@ -1462,9 +1462,9 @@ END MODULE DYNOCC_MODULE
        CHARACTER(32)           :: FORMAT
 !      *****************************************************************
        IF(ID.EQ.'EIG') THEN
-         FORMAT='("EIG",I3,":",10F8.3)'
+         FORMAT='("EIG",I4,":",10F8.3)'
        ELSE IF(ID.EQ.'OCC') THEN
-         FORMAT='("OCC",I3,":",10F8.3)'
+         FORMAT='("OCC",I4,":",10F8.3)'
        ELSE
           CALL ERROR$MSG('ID NOT RECOGNIZED')
           CALL ERROR$STOP('DYNOCC_PREIG')
@@ -2336,6 +2336,14 @@ END IF
        INTEGER(4)             :: ISPIN,ISVAR
        REAL(8)                :: DX
 !      *****************************************************************
+       IF(TOTCHA.LT.0.D0.OR.ABS(SPINCHA).GT.TOTCHA) THEN
+         CALL ERROR$MSG('NEGATIVE AMOUNT OF VALENCE ELECTRONS IS NOT ALLOWED')
+         CALL ERROR$MSG('AND SPIN DENSITY MUST NOT EXCEED TOTAL DENSITY')
+         CALL ERROR$R8VAL('TOTCHA',TOTCHA)
+         CALL ERROR$R8VAL('SPINCHA',SPINCHA)
+         CALL ERROR$STOP('DYNOCC_INIOCCBYNUMBER')
+       END IF
+!
        IF(NSPIN.EQ.1) THEN ! NON-SPIN-POLARIZED AND NON-COLLINEAR CASE
          ISVAR=INT(TOTCHA/FMAX)
          X(1:ISVAR,:,1)=1.D0
